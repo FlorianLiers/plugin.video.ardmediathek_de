@@ -19,6 +19,9 @@ showSubtitles = addon.getSetting("showSubtitles") == "true"
 forceViewMode = addon.getSetting("forceViewMode") == "true"
 useThumbAsFanart=addon.getSetting("useThumbAsFanart") == "true"
 viewMode = str(addon.getSetting("viewMode"))
+errorMessageDurationSec = 20
+characterEncoding = "iso-8859-15"
+
 baseUrl = "http://www.ardmediathek.de"
 defaultThumb = baseUrl+"/ard/static/pics/default/16_9/default_webM_16_9.jpg"
 defaultBackground = "http://www.ard.de/pool/img/ard/background/base_xl.jpg"
@@ -273,12 +276,24 @@ def listVideosDossier(url):
         xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
 
 
-def playVideo(url):
+#
+# Extracts the stream URL from a web page
+# 
+# Returns two results:
+#   1. stream URL or None on error
+#   2. error message in case of error
+#
+def extractStreamURL(url):
+    # get web page
     content = getUrl(url)
+    # analyse the web page
     matchFSK = re.compile('<div class="fsk">(.+?)</div>', re.DOTALL).findall(content)
     if matchFSK:
         fsk = matchFSK[0].strip()
-        xbmc.executebuiltin('XBMC.Notification(Info:,'+fsk+',15000)')
+        if fsk:
+            return None, fsk
+        else:
+            return None, content
     else:
         match5 = re.compile('addMediaStream\\(1, 2, "", "(.+?)"', re.DOTALL).findall(content)
         match6 = re.compile('addMediaStream\\(1, 1, "", "(.+?)"', re.DOTALL).findall(content)
@@ -287,7 +302,7 @@ def playVideo(url):
         match3 = re.compile('addMediaStream\\(0, 1, "(.+?)", "(.+?)"', re.DOTALL).findall(content)
         match4 = re.compile('addMediaStream\\(0, 1, "", "(.+?)"', re.DOTALL).findall(content)
         matchUT = re.compile('setSubtitleUrl\\("(.+?)"', re.DOTALL).findall(content)
-        url = ""
+        url = None
         if match5:
             url = match5[0]
         elif match6:
@@ -309,10 +324,83 @@ def playVideo(url):
         if url:
             if "?" in url:
                 url = url[:url.find("?")]
-            listitem = xbmcgui.ListItem(path=url)
-            xbmcplugin.setResolvedUrl(pluginhandle, True, listitem)
-            if showSubtitles and matchUT:
-                setSubtitle(baseUrl+matchUT[0])
+            return url, None
+        else:
+            return None, content
+
+
+#
+# Start playing a stream by extracting the stream URL from a web page URL
+#
+def playVideo(url):
+    streamURL, errorMsg = extractStreamURL(url)
+    print("Playing " +streamURL +" (web page = " +url +")")
+    if streamURL:
+        listitem = xbmcgui.ListItem(path=streamURL)
+        xbmcplugin.setResolvedUrl(pluginhandle, True, listitem)
+        if showSubtitles and matchUT:
+            setSubtitle(baseUrl+matchUT[0])
+    else:
+        reportError(translation(30200), translation(30202) +" " +errorMsg)
+
+
+#
+# Enqueues a video to the download list of the plugin SimpleDownloader
+#
+def downloadVideo(url, name):
+    # determine stream URL from web page URL
+    streamURL, errorMsg = extractStreamURL(url)
+    
+    # handle error case
+    if not streamURL:
+        # avoid encoding problems within string operation in call to reportError    
+        if isinstance(errorMsg, unicode):
+            errorMsg = errorMsg.encode(characterEncoding, "replace")
+        baseMsg = translation(30202)
+        if isinstance(baseMsg, unicode):
+            baseMsg = baseMsg.encode(characterEncoding, "replace")
+    	reportError(translation(30200), baseMsg +" " +errorMsg)
+        return
+    
+    print("Download '" +name +"' from '" +streamURL +"' (web page url = '" +url +"')")
+    
+    # use original file name as suffix in order to (a) have correct extension
+    # for file and (b) to enable multiple files with same base name (e.g.
+    # different format/resolutions)
+    nameClean = name +" - " +os.path.basename(streamURL)
+    # clean up name to ASCII characters, because it is used as file name later on
+    # remove any problematic characters (e.g., 'ü')
+    regex = re.compile('[^a-zA-Z0-9_\.\- ]+')
+    nameClean = regex.sub('_', nameClean).strip()
+    
+    # check name of destination folder (from plug-in configuration)
+    downloadFolder = addon.getSetting("downloadFolder")
+    if downloadFolder:
+        print("Download '" +nameClean +"' to folder '" +downloadFolder +"'")
+    else:
+        reportError(translation(30200), translation(30203))
+        return
+    
+    # init SimpleDownloader plugin
+    downloader = None
+    try:
+        import SimpleDownloader
+        downloader = SimpleDownloader.SimpleDownloader()
+    except:
+	reportError(translation(30200), translation(30201))
+        return
+    
+    # debugging: remove invalid old entries from persistent queue
+    #downloader.cleanQueue()
+    
+    # set parameters for download
+    dparams = {}
+    dparams["Title"] = name
+    dparams["url"] = streamURL
+    dparams["download_path"] = downloadFolder
+    
+    # start download itself
+    downloader.download(nameClean, dparams) 
 
 
 def setSubtitle(url):
@@ -478,6 +566,7 @@ def addLink(name, url, mode, iconimage, duration="", desc=""):
     else:
         liz.setProperty("fanart_image", defaultBackground)
     liz.addContextMenuItems([(translation(30012), 'RunPlugin(plugin://'+addonID+'/?mode=queueVideo&url='+urllib.quote_plus(u)+'&name='+urllib.quote_plus(name)+')',)])
+    liz.addContextMenuItems([(translation(30040), 'RunPlugin(plugin://'+addonID+'/?mode=downloadVideo&url='+urllib.quote_plus(url)+'&name='+urllib.quote_plus(name)+')',)])
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz)
     return ok
 
@@ -530,6 +619,22 @@ def addShowFavDir(name, url, mode, iconimage):
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
 
+
+#
+# Saves an error message in the log file and outputs it to the user on the screen
+# 
+def reportError(title, msg):
+    # convert to unicode in order to avoid later exceptions
+    if isinstance(title, unicode):
+        title = title.encode(characterEncoding, "replace")
+    if isinstance(msg, unicode):
+        msg = msg.encode(characterEncoding, "replace")
+    # save it in log file
+    print(title +": " +msg)
+    # display it
+    xbmc.executebuiltin('XBMC.Notification(' +title +',' +msg +',' +str(errorMessageDurationSec *1000) +')')
+
+
 params = parameters_string_to_dict(sys.argv[2])
 mode = urllib.unquote_plus(params.get('mode', ''))
 url = urllib.unquote_plus(params.get('url', ''))
@@ -561,6 +666,8 @@ elif mode == 'listShowVideos':
     listShowVideos(url)
 elif mode == 'playVideo':
     playVideo(url)
+elif mode == 'downloadVideo':
+    downloadVideo(url, name)
 elif mode == "queueVideo":
     queueVideo(url, name)
 elif mode == 'playLive':

@@ -22,8 +22,16 @@
   <string id="30028">Add to addon favs</string>
   <string id="30029">Remove from addon favs</string>
   <string id="30030">Play alternative Stream-URL</string>
+  <string id="30040">Download video</string>
+  
   <string id="30101">Force View</string>
   <string id="30102">ViewID</string>
   <string id="30103">Use thumb as fanart</string>
   <string id="30104">Activate subtitles (if available)</string>
+  <string id="30105">Destination folder for downloaded videos</string>
+
+  <string id="30200">Error</string>
+  <string id="30201">Plug-in SimpleDownloader required for downloading not found. Maybe it has to be installed first.</string>
+  <string id="30202">Stream URL can not be determined. Web page:</string>
+  <string id="30203">Destination folder not defined. Please define it in the configuration section of this plug-in.</string>
 </strings>

@@ -22,7 +22,15 @@
   <string id="30028">Zu Addon Favs hinzufügen</string>
   <string id="30029">Aus Addon Favs entfernen</string>
   <string id="30030">Alternative Stream-Url abspielen</string>
+  <string id="30040">Video herunterladen</string>
+  
   <string id="30101">View erzwingen</string>
   <string id="30103">Thumb als Fanart nutzen</string>
   <string id="30104">Untertitel aktivieren (falls verfügbar)</string>
+  <string id="30105">Zielordner für heruntergeladene Videos</string>
+
+  <string id="30200">Fehler</string>
+  <string id="30201">Zum Herunterladen notwendiges Plugin SimpleDownloader nicht gefunden. Es muss möglicherweise erst installiert werden.</string>
+  <string id="30202">Stream-URL kann nicht bestimmt werden. Webseite:</string>
+  <string id="30203">Zielverzeichnis ist nicht definiert. Bitte Konfiguration des Plug-ins anpassen.</string>
 </strings>
