@@ -88,7 +88,7 @@ def listDossiers():
         url = baseUrl+match[0]
         id = url[url.find("documentId=")+11:]
         url = baseUrl+"/ard/servlet/ajax-cache/3517004/view=list/documentId="+id+"/goto=1/index.html"
-        match = re.compile('<span class="mt-icon mt-icon-toggle_arrows"></span>\n                (.+?)\n', re.DOTALL).findall(entry)
+        match = re.compile('<span class="mt-icon mt-icon-toggle_arrows"></span>\n                (.+?)</a>\n', re.DOTALL).findall(entry)
         title = cleanTitle(match[0])
         match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
         thumb = getBetterThumb(baseUrl+match[0])
