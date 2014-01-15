@@ -176,10 +176,10 @@ def iterateContent(url, videoOnly, nextPageAction, callbackForVideo, separator='
             if "mt-icon_video" not in entry:
                 useEntry = False
         if useEntry:
-            title, streamurl, thumb, duration, channel, show, desc, date = extractVideoDescription(entry)
+            title, pageurl, thumb, duration, channel, show, desc, date = extractVideoDescription(entry)
             # was analysis successful?
-            if title and streamurl:
-                callbackForVideo(title, streamurl, thumb, duration, channel, show, desc, date)
+            if title and pageurl:
+                callbackForVideo(title, pageurl, thumb, duration, channel, show, desc, date)
             else:
                 print("Ignoring entry without title and URL.")
     
