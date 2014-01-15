@@ -228,7 +228,8 @@ def extractVideoDescription(entry):
         if match:
             channel = match[0]
         # duration and date
-        match = re.compile('<span class="mt-airtime">\n                    (.+?)\n                    (.+?) min\n            </span>', re.DOTALL).findall(entry)
+        # (encoded as "15.01.14 16:46 min" or in the search results as "15.01.14 - 16:46 min"
+        match = re.compile('<span class="mt-airtime">([0-9\.]+)[^0-9]*([0-9:]+ min)?</span>', re.DOTALL).findall(entry)
         if match:
             date = match[0][0]
             duration = match[0][1]
@@ -524,7 +525,7 @@ def createVideoEntry(title, pageurl, thumb, duration, channel, show, desc, date)
             desc = cleanTitle(date+" - "+show+" ("+channel+")")
         if date:
             # add date to title
-            title = date[:5]+" - "+title
+            title = date[:6]+" - "+title
         addLink(title, pageurl, 'playVideo', thumb, duration)
 
 
