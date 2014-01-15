@@ -32,6 +32,6 @@
 
   <string id="30200">Error</string>
   <string id="30201">Plug-in SimpleDownloader required for downloading not found. Maybe it has to be installed first.</string>
-  <string id="30202">Stream URL can not be determined. Web page:</string>
+  <string id="30202">Stream URL can not be determined. Error:</string>
   <string id="30203">Destination folder not defined. Please define it in the configuration section of this plug-in.</string>
 </strings>

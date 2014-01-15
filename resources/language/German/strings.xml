@@ -31,6 +31,6 @@
 
   <string id="30200">Fehler</string>
   <string id="30201">Zum Herunterladen notwendiges Plugin SimpleDownloader nicht gefunden. Es muss möglicherweise erst installiert werden.</string>
-  <string id="30202">Stream-URL kann nicht bestimmt werden. Webseite:</string>
+  <string id="30202">Stream-URL kann nicht bestimmt werden. Fehler:</string>
   <string id="30203">Zielverzeichnis ist nicht definiert. Bitte Konfiguration des Plug-ins anpassen.</string>
 </strings>

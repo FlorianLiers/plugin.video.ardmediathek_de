@@ -164,7 +164,7 @@ def getBetterThumb(url):
 # Iterates over a web page and identifies all listed content elements (e.g. video/audio)
 #
 def iterateContent(url, videoOnly, nextPageAction, callbackForVideo, separator='<div class="mt-media_item">'):
-    print("list content for " +url)
+    #print("list content for " +url)
     content = getUrl(url)
     # find relevant parts of web page
     spl = content.split(separator)
@@ -179,6 +179,7 @@ def iterateContent(url, videoOnly, nextPageAction, callbackForVideo, separator='
             title, pageurl, thumb, duration, channel, show, desc, date = extractVideoDescription(entry)
             # was analysis successful?
             if title and pageurl:
+                #print("Content entry: " +title +" (" +pageurl +") " +duration +" - " +channel +" - " +show +" - descr:" +desc +" - date:" +date)
                 callbackForVideo(title, pageurl, thumb, duration, channel, show, desc, date)
             else:
                 print("Ignoring entry without title and URL.")
@@ -284,10 +285,7 @@ def extractStreamURL(url):
     matchFSK = re.compile('<div class="fsk">(.+?)</div>', re.DOTALL).findall(content)
     if matchFSK:
         fsk = matchFSK[0].strip()
-        if fsk:
-            return None, fsk
-        else:
-            return None, content
+        return None, fsk
     else:
         match5 = re.compile('addMediaStream\\(1, 2, "", "(.+?)"', re.DOTALL).findall(content)
         match6 = re.compile('addMediaStream\\(1, 1, "", "(.+?)"', re.DOTALL).findall(content)
@@ -320,7 +318,7 @@ def extractStreamURL(url):
                 url = url[:url.find("?")]
             return url, None
         else:
-            return None, content
+            return None, None
 
 
 #
@@ -328,13 +326,15 @@ def extractStreamURL(url):
 #
 def playVideo(url):
     streamURL, errorMsg = extractStreamURL(url)
-    print("Playing " +streamURL +" (web page = " +url +")")
     if streamURL:
+        print("Playing " +streamURL +" (web page = " +url +")")
         listitem = xbmcgui.ListItem(path=streamURL)
         xbmcplugin.setResolvedUrl(pluginhandle, True, listitem)
         if showSubtitles and matchUT:
             setSubtitle(baseUrl+matchUT[0])
     else:
+        if not errorMsg:
+            errorMsg = url;
         reportError(translation(30200), translation(30202) +" " +errorMsg)
 
 
