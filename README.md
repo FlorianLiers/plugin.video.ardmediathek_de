@@ -1,4 +1,5 @@
 plugin.video.ardmediathek_de
 ============================
 
-Fork for implementing video download capabilities.
+Information: http://wiki.xbmc.org/index.php?title=Add-on:ARD_Mediathek
+Features: Streaming and downloading videos from http://www.ardmediathek.de/
