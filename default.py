@@ -99,33 +99,7 @@ def listDossiers():
 
 
 def listShowVideos(url):
-    content = getUrl(url)
-    spl = content.split('<div class="mt-media_item">')
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-        if "mt-icon_video" in entry:
-            match = re.compile('<a href="(.+?)" class="mt-fo_source" rel="(.+?)">(.+?)</a>', re.DOTALL).findall(entry)
-            url = baseUrl+match[0][0]
-            title = cleanTitle(match[0][2])
-            match = re.compile('<span class="mt-airtime">\n                    (.+?)\n                    (.+?) min\n            </span>', re.DOTALL).findall(entry)
-            duration = ""
-            if match:
-                date = match[0][0]
-                duration = match[0][1]
-                title = date[:5]+" - "+title
-            if "00:" in duration:
-                duration = 1
-            match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumb = getBetterThumb(baseUrl+match[0])
-            if "Livestream" not in title:
-                addLink(title, url, 'playVideo', thumb, duration)
-    match = re.compile('<a  href="(.+?)" rel=".+?"\n         class=".+?">(.+?)</a>', re.DOTALL).findall(content)
-    for url, title in match:
-        if title == "Weiter":
-            addDir(translation(30009), baseUrl+url, 'listShowVideos', "", "")
-    xbmcplugin.endOfDirectory(pluginhandle)
-    if forceViewMode:
-        xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
+    iterateContent(url, True, 'listShowVideos', createVideoEntry)
 
 
 def listShowsAZMain():
@@ -153,6 +127,10 @@ def listShowsAZ(letter):
     if forceViewMode:
         xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
 
+
+#
+# Determines URL of better thumb for a video
+#
 def getBetterThumb(url):
     if baseUrl+"/ard/static/pics/default/16_9/default" in url:
         url = defaultThumb
@@ -180,7 +158,90 @@ def getBetterThumb(url):
             id = str(id)
             url = baseUrl+"/ard/servlet/contentblob/"+newID[0:2]+"/"+newID[2:4]+"/"+newID[4:6]+"/"+newID[6:8]+"/"+id+"/bild/1"
     return url
+
+
+#
+# Iterates over a web page and identifies all listed content elements (e.g. video/audio)
+#
+def iterateContent(url, videoOnly, nextPageAction, callbackForVideo, separator='<div class="mt-media_item">'):
+    print("list content for " +url)
+    content = getUrl(url)
+    # find relevant parts of web page
+    spl = content.split(separator)
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+        useEntry = True;
+        if videoOnly:
+            # there are also "mt-icon_audio" entries, which does not contain the following marker
+            if "mt-icon_video" not in entry:
+                useEntry = False
+        if useEntry:
+            title, streamurl, thumb, duration, channel, show, desc, date = extractVideoDescription(entry)
+            # was analysis successful?
+            if title and streamurl:
+                callbackForVideo(title, streamurl, thumb, duration, channel, show, desc, date)
+            else:
+                print("Ignoring entry without title and URL.")
     
+    # have a look for some "next page" indicator
+    if nextPageAction:
+        # searching for something like
+        # '<a  href="/ard/bla/bla" otherattr=bla rel="2"\n otherattr=bla">Weiter</a>'
+        match = re.compile('<a  href="([^\"]+)" [^<>]*rel="[0-9]+"[^<>]*>(.+?)</a>', re.DOTALL).findall(content)
+        for url, title in match:
+            if title == "Weiter":
+                addDir(translation(30009), baseUrl+url, nextPageAction, "", "")
+    # end list
+    xbmcplugin.endOfDirectory(pluginhandle)
+    if forceViewMode:
+        xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
+
+
+#
+# Analyzes the content of a web page and try to extract important information about a video
+# Returns multiple variables (equal to empty string if not found in the web page):
+#   1. title
+#   2. pageurl
+#   3. thumb
+#   4. duration
+#   5. channel
+#   6. show
+#   7. desc
+#   8. date
+#
+def extractVideoDescription(entry):
+    # init result
+    title = pageurl = thumb = duration = channel = show = desc = date = ""
+    # base information
+    match = re.compile('<a href="(.+?)" class="mt-fo_source" rel="(.+?)">(.+?)</a>', re.DOTALL).findall(entry)
+    if match:
+        pageurl = baseUrl+match[0][0]
+        title = cleanTitle(match[0][2])
+        # show
+        match = re.compile('<p class="mt-source mt-tile-view_hide">aus: (.+?)</p>', re.DOTALL).findall(entry)
+        show = ""
+        if match:
+            show = match[0]
+        # channel
+        match = re.compile('<span class="mt-channel mt-tile-view_hide">(.+?)</span>', re.DOTALL).findall(entry)
+        channel = ""
+        if match:
+            channel = match[0]
+        # duration and date
+        match = re.compile('<span class="mt-airtime">\n                    (.+?)\n                    (.+?) min\n            </span>', re.DOTALL).findall(entry)
+        if match:
+            date = match[0][0]
+            duration = match[0][1]
+            if "00:" in duration:
+                # XBMC will round this duration to zero. Thus, we set it to at least one minute
+                # (do not return an int, because it is normally a string)
+                duration = "01:00 min"
+        # thumbs
+        match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
+        thumb = getBetterThumb(baseUrl+match[0])
+        
+    return title, pageurl, thumb, duration, channel, show, desc, date
+
 
 def listCats():
     content = getUrl(baseUrl)
@@ -201,79 +262,11 @@ def listVideosMain(id):
 
 
 def listVideos(url):
-    content = getUrl(url)
-    spl = content.split('<div class="mt-media_item">')
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-        if "mt-icon_video" in entry:
-            match = re.compile('<a href="(.+?)" class="mt-fo_source" rel="(.+?)">(.+?)</a>', re.DOTALL).findall(entry)
-            url = baseUrl+match[0][0]
-            title = cleanTitle(match[0][2])
-            match = re.compile('<p class="mt-source mt-tile-view_hide">aus: (.+?)</p>', re.DOTALL).findall(entry)
-            show = ""
-            if match:
-                show = match[0]
-            match = re.compile('<span class="mt-channel mt-tile-view_hide">(.+?)</span>', re.DOTALL).findall(entry)
-            channel = ""
-            if match:
-                channel = match[0]
-            match = re.compile('<span class="mt-airtime">\n                    (.+?)\n                    (.+?) min\n            </span>', re.DOTALL).findall(entry)
-            duration = ""
-            date = ""
-            if match:
-                date = match[0][0]
-                duration = match[0][1]
-                title = date[:5]+" - "+title
-            if "00:" in duration:
-                duration = 1
-            match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumb = getBetterThumb(baseUrl+match[0])
-            desc = cleanTitle(date+" - "+show+" ("+channel+")")
-            if "Livestream" not in title:
-                addLink(title, url, 'playVideo', thumb, duration, desc)
-    xbmcplugin.endOfDirectory(pluginhandle)
-    if forceViewMode:
-        xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
+    iterateContent(url, True, None, createVideoEntry)
 
 
 def listVideosDossier(url):
-    content = getUrl(url)
-    spl = content.split('<div class="mt-media_item">')
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-        if 'class="mt-fo_source"' in entry:
-            match = re.compile('<a href="(.+?)" class="mt-fo_source" rel="(.+?)">(.+?)</a>', re.DOTALL).findall(entry)
-            url = baseUrl+match[0][0]
-            title = cleanTitle(match[0][2])
-            match = re.compile('<p class="mt-source mt-tile-view_hide">aus: (.+?)</p>', re.DOTALL).findall(entry)
-            show = ""
-            if match:
-                show = match[0]
-            match = re.compile('<span class="mt-channel mt-tile-view_hide">(.+?)</span>', re.DOTALL).findall(entry)
-            channel = ""
-            if match:
-                channel = match[0]
-            match = re.compile('<span class="mt-airtime">\n                    (.+?)\n                    (.+?) min\n            </span>', re.DOTALL).findall(entry)
-            duration = ""
-            date = ""
-            if match:
-                date = match[0][0]
-                duration = match[0][1]
-                title = date[:5]+" - "+title
-            if "00:" in duration:
-                duration = 1
-            match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumb = getBetterThumb(baseUrl+match[0])
-            desc = cleanTitle(date+" - "+show+" ("+channel+")")
-            if "Livestream" not in title:
-                addLink(title, url, 'playVideo', thumb, duration, desc)
-    match = re.compile('<a  href="(.+?)" rel=".+?"\n         class=".+?">(.+?)</a>', re.DOTALL).findall(content)
-    for url, title in match:
-        if title == "Weiter":
-            addDir(translation(30009), baseUrl+url, 'listVideosDossier', "", "")
-    xbmcplugin.endOfDirectory(pluginhandle)
-    if forceViewMode:
-        xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
+    iterateContent(url, False, 'listVideosDossier', createVideoEntry)
 
 
 #
@@ -454,40 +447,7 @@ def search():
 
 
 def listVideosSearch(url):
-    content = getUrl(url)
-    spl = content.split('<div class="mt-media_item mt-media-item">')
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-        match = re.compile('<a href="(.+?)" class="mt-fo_source" rel="(.+?)">(.+?)</a>', re.DOTALL).findall(entry)
-        url = baseUrl+match[0][0]
-        title = cleanTitle(match[0][2])
-        match = re.compile('<p class="mt-source mt-tile-view_hide">aus: (.+?)</p>', re.DOTALL).findall(entry)
-        show = ""
-        if match:
-            show = match[0]
-        match = re.compile('<span class="mt-channel mt-tile-view_hide">(.+?)</span>', re.DOTALL).findall(entry)
-        channel = ""
-        if match:
-            channel = match[0]
-        match = re.compile('<span class="mt-airtime">(.+?) · (.+?) min</span>', re.DOTALL).findall(entry)
-        duration = ""
-        date = ""
-        if match:
-            date = match[0][0]
-            duration = match[0][1]
-            title = date[:5]+" - "+title
-        match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-        thumb = getBetterThumb(baseUrl+match[0])
-        desc = cleanTitle(date+" - "+show+" ("+channel+")")
-        if "Livestream" not in title:
-            addLink(title, url, 'playVideo', thumb, duration, desc)
-    match = re.compile('<a  href="(.+?)"  class=".+?" rel=".+?">(.+?)</a>', re.DOTALL).findall(content)
-    for url, title in match:
-        if title == "Weiter":
-            addDir(translation(30009), baseUrl+url.replace("&amp;", "&"), 'listVideosSearch', "", "")
-    xbmcplugin.endOfDirectory(pluginhandle)
-    if forceViewMode == True:
-        xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
+    iterateContent(url, False, 'listVideosSearch', createVideoEntry, separator='<div class="mt-media_item mt-media-item">')
 
 
 def cleanTitle(title):
@@ -551,6 +511,21 @@ def parameters_string_to_dict(parameters):
             if (len(paramSplits)) == 2:
                 paramDict[paramSplits[0]] = paramSplits[1]
     return paramDict
+
+#
+# Callback per video for list function
+#
+def createVideoEntry(title, pageurl, thumb, duration, channel, show, desc, date):
+    # error handling for web page without any information
+    if not title:
+        title = "?"
+    if "Livestream" not in title:
+        if not desc:
+            desc = cleanTitle(date+" - "+show+" ("+channel+")")
+        if date:
+            # add date to title
+            title = date[:5]+" - "+title
+        addLink(title, pageurl, 'playVideo', thumb, duration)
 
 
 def addLink(name, url, mode, iconimage, duration="", desc=""):
