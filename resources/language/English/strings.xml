@@ -29,7 +29,9 @@
   <string id="30103">Use thumb as fanart</string>
   <string id="30104">Activate subtitles (if available)</string>
   <string id="30105">Destination folder for downloaded videos</string>
-
+  <string id="30106">Show date in video title</string>
+  <string id="30107">Show name of series in video title</string>
+  
   <string id="30200">Error</string>
   <string id="30201">Plug-in SimpleDownloader required for downloading not found. Maybe it has to be installed first.</string>
   <string id="30202">Stream URL can not be determined. Error:</string>

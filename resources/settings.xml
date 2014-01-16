@@ -4,4 +4,6 @@
    <setting id="forceViewMode" type="bool" label="30101" default="true"/>
    <setting id="viewMode" type="number" label="30102" default="500"/>
    <setting id="downloadFolder" type="folder" label="30105" default=""/>
+   <setting id="showDateInTitle" type="bool" label="30106" default="true"/>
+   <setting id="showSeriesInTitle" type="bool" label="30107" default="true"/>
 </settings>

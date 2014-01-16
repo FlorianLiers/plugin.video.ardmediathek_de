@@ -28,6 +28,8 @@
   <string id="30103">Thumb als Fanart nutzen</string>
   <string id="30104">Untertitel aktivieren (falls verfügbar)</string>
   <string id="30105">Zielordner für heruntergeladene Videos</string>
+  <string id="30106">Zeige Datum im Videotitel</string>
+  <string id="30107">Zeige Serienname im Videotitel</string>
 
   <string id="30200">Fehler</string>
   <string id="30201">Zum Herunterladen notwendiges Plugin SimpleDownloader nicht gefunden. Es muss möglicherweise erst installiert werden.</string>

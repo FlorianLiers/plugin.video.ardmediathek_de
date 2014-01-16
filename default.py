@@ -182,6 +182,7 @@ def iterateContent(url, videoOnly, nextPageAction, callbackForVideo, separator='
                 #print("Content entry: " +title +" (" +pageurl +") " +duration +" - " +channel +" - " +show +" - descr:" +desc +" - date:" +date)
                 callbackForVideo(title, pageurl, thumb, duration, channel, show, desc, date)
             else:
+                # error handling for web page without any information
                 print("Ignoring entry without title and URL.")
     
     # have a look for some "next page" indicator
@@ -515,18 +516,18 @@ def parameters_string_to_dict(parameters):
 
 #
 # Callback per video for list function
+# (at least title and pageurl have to be valid)
 #
 def createVideoEntry(title, pageurl, thumb, duration, channel, show, desc, date):
-    # error handling for web page without any information
-    if not title:
-        title = "?"
     if "Livestream" not in title:
         if not desc:
             desc = cleanTitle(date+" - "+show+" ("+channel+")")
-        if date:
+        if show and addon.getSetting("showSeriesInTitle") == "true":
+            title = show +": " +title
+        if date and addon.getSetting("showDateInTitle") == "true":
             # add date to title
-            title = date[:6]+" - "+title
-        addLink(title, pageurl, 'playVideo', thumb, duration)
+            title = date[:6]+" "+title
+        addLink(cleanTitle(title), pageurl, 'playVideo', thumb, duration, desc)
 
 
 def addLink(name, url, mode, iconimage, duration="", desc=""):
