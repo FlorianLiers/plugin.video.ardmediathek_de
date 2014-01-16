@@ -235,10 +235,11 @@ def extractVideoDescription(entry):
         if match:
             date = match[0][0]
             duration = match[0][1]
+            duration = duration.replace("min", "").strip()
             if "00:" in duration:
                 # XBMC will round this duration to zero. Thus, we set it to at least one minute
                 # (do not return an int, because it is normally a string)
-                duration = "01:00 min"
+                duration = "01:00"
         # thumbs
         match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
         thumb = getBetterThumb(baseUrl+match[0])
@@ -534,7 +535,12 @@ def addLink(name, url, mode, iconimage, duration="", desc=""):
     u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)
     ok = True
     liz = xbmcgui.ListItem(name, iconImage=defaultThumb, thumbnailImage=iconimage)
-    liz.setInfo(type="Video", infoLabels={"Title": name, "Duration": duration, "Plot": desc})
+    infos = {"Title": name}
+    if duration:
+        infos["Duration"] = duration
+    if desc:
+        infos["Plot"] = desc
+    liz.setInfo(type="Video", infoLabels=infos)
     liz.setProperty('IsPlayable', 'true')
     if useThumbAsFanart:
         if not iconimage or iconimage==icon:
