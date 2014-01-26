@@ -21,6 +21,7 @@ useThumbAsFanart=addon.getSetting("useThumbAsFanart") == "true"
 viewMode = str(addon.getSetting("viewMode"))
 errorMessageDurationSec = 20
 characterEncoding = "iso-8859-15"
+configEnableDownloadFeature = False
 
 baseUrl = "http://www.ardmediathek.de"
 defaultThumb = baseUrl+"/ard/static/pics/default/16_9/default_webM_16_9.jpg"
@@ -549,7 +550,9 @@ def addLink(name, url, mode, iconimage, duration="", desc=""):
     else:
         liz.setProperty("fanart_image", defaultBackground)
     liz.addContextMenuItems([(translation(30012), 'RunPlugin(plugin://'+addonID+'/?mode=queueVideo&url='+urllib.quote_plus(u)+'&name='+urllib.quote_plus(name)+')',)])
-    liz.addContextMenuItems([(translation(30040), 'RunPlugin(plugin://'+addonID+'/?mode=downloadVideo&url='+urllib.quote_plus(url)+'&name='+urllib.quote_plus(name)+')',)])
+    if configEnableDownloadFeature:
+        liz.addContextMenuItems([(translation(30040), 'RunPlugin(plugin://'+addonID+'/?mode=downloadVideo&url='+urllib.quote_plus(url)+'&name='+urllib.quote_plus(name)+')',)])
+    # else: downloading is not allowed
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz)
     return ok
 
